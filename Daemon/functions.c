@@ -1,7 +1,7 @@
 #include "main.h"
 
 
-void addRowsAndCols() {
+void copyUsageDBtoUsagetxt() {
 
 	char *file="/tmp/usage.db";
 	FILE *in = fopen( file, "r" );
@@ -11,7 +11,7 @@ void addRowsAndCols() {
 	char *line = NULL;
 	size_t len = 0UL;
 	ssize_t result;
-	char buffer[1024];
+	char buffer[MAXBUF];
 	
 	for ( ; ; ) {
 	
@@ -34,7 +34,7 @@ void addRowsAndCols() {
 }
 
 
-void addRowsAndCols2() {
+void copyUsageDBtoUsage2txt() {
 
 	char *file="/tmp/usage.db";
 	FILE *in = fopen( file, "r" );
@@ -44,7 +44,7 @@ void addRowsAndCols2() {
 	char *line = NULL;
 	size_t len = 0UL;
 	ssize_t result;
-	char buffer[1024];
+	char buffer[MAXBUF];
 	
 	for ( ; ; ) {
 	
@@ -67,10 +67,10 @@ void addRowsAndCols2() {
 }
 
 
-int getUsageDataFromTxt(FILE *fp, char element[100][10][512]) {
+int getDatasFromUsageTxt(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR]) {
 	
-	char user[100][MAXX];
-	char line[MAXX];	// line read from the file
+	char tab[MAXROWS][MAXBUF];
+	char line[MAXBUF];	// line read from the file
 	char *p, *pt;		// pointer to return fgets, pointer to return strchr
 	int k, i=0, j=0;			// k row reading index, i number of rows, j number of cols
 
@@ -82,27 +82,27 @@ int getUsageDataFromTxt(FILE *fp, char element[100][10][512]) {
         	exit(EXIT_FAILURE);
 	}
 	
-	p = fgets(line, MAXX, pFile);
+	p = fgets(line, MAXBUF, pFile);
 	while (p != NULL) {
 		pt = strchr(line, '\n');		// we are looking for the character \n
 		if (pt != NULL) {
 			*pt = '\0';			// we replace by \0
  		}
 
-		strcpy(user[i], line);		// copy the row in the table 
-		p = fgets(line, MAXX, pFile);		// read the next line
+		strcpy(tab[i], line);		// copy the row in the table 
+		p = fgets(line, MAXBUF, pFile);		// read the next line
 		i++;		// we go to the next index for the table
 	}
 
 	fclose(pFile);
 
-	for (k=1; k<i; k++) {		// read the rows stored in the tab variable
-		char *token = strtok(user[k], ",");	// separate each element in a row delimited by a comma
+	for (k=1; k<i; k++) {		// read the rows stored in tab
+		char *element = strtok(tab[k], ",");	// separate each element in a row delimited by a comma
 		
-		while (token != NULL) {
+		while (element != NULL) {
 			for (j=0; j<10; j++) {
-				strcpy(element[k][j], token);		// Put each element in a row in different columns
-				token = strtok(NULL, ",");
+				strcpy(tableUsageDB[k][j], element);		// Put each element in a row in different columns
+				element = strtok(NULL, ",");
 			}
 		}
 	}
@@ -110,10 +110,10 @@ int getUsageDataFromTxt(FILE *fp, char element[100][10][512]) {
 }
 
 
-int getUsageDataFromTxt2(FILE *fp, char element3[100][10][512]) {
+int getDatasFromUsage2Txt(FILE *fp, char tableUsageDB2[MAXROWS][10][MAXSTR]) {
 	
-	char user[100][MAXX];
-	char line[MAXX];	// line read from the file
+	char tab[MAXROWS][MAXBUF];
+	char line[MAXBUF];	// line read from the file
 	char *p, *pt;		// pointer to return fgets, pointer to return strchr
 	int k, i=0, j=0;			// k row reading index, i number of rows, j number of cols
 
@@ -125,27 +125,27 @@ int getUsageDataFromTxt2(FILE *fp, char element3[100][10][512]) {
         	exit(EXIT_FAILURE);
 	}
 	
-	p = fgets(line, MAXX, pFile);
+	p = fgets(line, MAXBUF, pFile);
 	while (p != NULL) {
 		pt = strchr(line, '\n');		// we are looking for the character \n
 		if (pt != NULL) {
 			*pt = '\0';			// we replace by \0
  		}
 
-		strcpy(user[i], line);		// copy the row in the table 
-		p = fgets(line, MAXX, pFile);		// read the next line
+		strcpy(tab[i], line);		// copy the row in the table 
+		p = fgets(line, MAXBUF, pFile);		// read the next line
 		i++;		// we go to the next index for the table
 	}
 
 	fclose(pFile);
 
-	for (k=1; k<i; k++) {		// read the rows stored in the tab variable
-		char *token = strtok(user[k], ",");	// separate each element in a row delimited by a comma
+	for (k=1; k<i; k++) {		// read the rows stored in tab
+		char *element = strtok(tab[k], ",");	// separate each element in a row delimited by a comma
 		
-		while (token != NULL) {
+		while (element != NULL) {
 			for (j=0; j<10; j++) {
-				strcpy(element3[k][j], token);		// Put each element in a row in different columns
-				token = strtok(NULL, ",");
+				strcpy(tableUsageDB2[k][j], element);		// Put each element in a row in different columns
+				element = strtok(NULL, ",");
 			}
 		}
 	}
@@ -153,30 +153,10 @@ int getUsageDataFromTxt2(FILE *fp, char element3[100][10][512]) {
 }
 
 
-void timeOut(FILE *fp, char element[100][10][512], int numRows, int timeLimit) {
+int getDatasFromNDSlog(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR]) {
 
-	struct tm mytm;
-	time_t t, now=time(NULL);
-	int i;
-
-	for (i=1; i<numRows; i++) {
-		strptime(element[i][7],"%d-%m-%Y_%H:%M:%S", &mytm);	// convert string datetime into timestamp
-		t = mktime(&mytm);
-		int diff = now-t;		// calculate the difference between actual time and last seen time
-		
-		//if (diff >= timeLimit) {
-			//fprintf(fp, "Exceeded time limit of %d seconds !\n", diff);
-			//fprintf(fp, "User %s will be kicked out !\n", element[i][0]);
-		//}
-	}
-	fprintf(fp, "\n");
-}
-
-
-int getCatchPageData(FILE *fp, char element2[100][19][512]) {
-
-	char user2[100][MAXX];
-	char line[MAXX];	// line read from the file
+	char tab[100][MAXBUF];
+	char line[MAXBUF];	// line read from the file
 	char *p, *pt;		// pointer to return fgets, pointer to return strchr
 	int h, i=0, j=0, l, m, len;			// h row reading index, i number of rows, j number of cols
 
@@ -188,26 +168,26 @@ int getCatchPageData(FILE *fp, char element2[100][19][512]) {
         	return 0;
 	}
 	else {
-		p = fgets(line, MAXX, logfile);
+		p = fgets(line, MAXBUF, logfile);
 		while (p != NULL) {
 			pt = strchr(line, '\n');		// we are looking for the character \n
 			if (pt != NULL) {
 				*pt = '\0';			// we replace by \0
 	 		}
 	
-			strcpy(user2[i], line);		// copy the row in the table 
-			p = fgets(line, MAXX, logfile);		// read the next line
+			strcpy(tab[i], line);		// copy the row in the table 
+			p = fgets(line, MAXBUF, logfile);		// read the next line
 			i++;		// we go to the next index for the table
 		}
 	
 		fclose(logfile);
 	
-		for (h=1; h<i; h++) {		// read the rows stored in the user variable
-			len = strlen(user2[h]);
+		for (h=1; h<i; h++) {		// read the rows stored in tab
+			len = strlen(tab[h]);
 			for (l=0; l<len; l++) {
-				if (user2[h][l] == ' ') {
+				if (tab[h][l] == ' ') {
 					for (m=l; m<len; m++) {
-						user2[h][m] = user2[h][m+1];
+						tab[h][m] = tab[h][m+1];
 					}
 					len--;
 					l--;
@@ -215,12 +195,12 @@ int getCatchPageData(FILE *fp, char element2[100][19][512]) {
 			}
 	
 			if (len > 250) {
-				char *token = strtok(user2[h], ",");		// separate each element in a row delimited by a comma
+				char *element = strtok(tab[h], ",");		// separate each element in a row delimited by a comma
 			
-				while (token != NULL) {
-					for (j=0; j<19; j++) {
-						strcpy(element2[h][j], token);		// put each element in a row in different columns
-						token = strtok(NULL, ",");
+				while (element != NULL) {
+					for (j=0; j<18; j++) {
+						strcpy(tableNDS[h][j], element);		// put each element in a row in different columns
+						element = strtok(NULL, ",");
 					}
 				}
 			}
@@ -230,87 +210,145 @@ int getCatchPageData(FILE *fp, char element2[100][19][512]) {
 }
 
 
-void addWalletIDandQuota(FILE *fp, char element[100][10][512], char element2[100][19][512], char element3[100][10][512], int numRows, int numRows2, int numRows3) {
+//void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], int numRowsUsageDB) {
 
-	int i = 0, j = 0;
+	//struct tm mytm;
+	//time_t t, now=time(NULL);
+	//int i;
 
-	for (i=1; i<numRows; i++) {		// for every line in usage.txt
-		for (j=1; j<numRows2; j++) {		// for every line in ndslog.log
-			if ( (strcmp(element[i][0], element2[j][13]) == 0) && (strstr(element2[j][6], "status=Client") != NULL) && (strcmp(element[i][1], element2[j][14]) == 0) ) {	// if same mac adress and client connected
-				
-				if (numRows == numRows3) {
-					memmove(element3[i][8], element2[j][3], strlen(element2[j][3]));
-					memmove(element3[i][9], element2[j][2], strlen(element2[j][2]));
-				}
-			}
-		}
-	}
-}
+	//for (i=1; i<numRows; i++) {
+		//strptime(tableUsageDB[i][DBLS],"%d-%m-%Y_%H:%M:%S", &mytm);	// convert string datetime into timestamp
+		//t = mktime(&mytm);
+		//int diff = now-t;		// calculate the difference between actual time and last seen time
+		
+		//if (diff >= TIMELIMIT) {
+			//fprintf(fp, "Exceeded time limit of %d seconds !\n", diff);
+			//fprintf(fp, "User %s will be kicked out !\n", tableUsageDB[i][DBMAC]);
+		//}
+	//}
+	//fprintf(fp, "\n");
+//}
 
 
-int countNumClients(FILE *fp, char element[100][10][512], char element2[100][19][512], int numRows, int numRows2) {
+int countNumClients(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS) {
 
 	int i = 0, j = 0, h = 0, k = 0;
 	
-	for (h=1; h<numRows2; h++) {
-		memmove(&element2[h][13][0], &element2[h][13][4], strlen(element2[h][13]));		// get only mac adress without "mac="
-		memmove(&element2[h][2][0], &element2[h][2][6], strlen(element2[h][2]));			// get only quota without "quota="
-		memmove(&element2[h][3][0], &element2[h][3][9], strlen(element2[h][3]));			// get only walletID without "walletID="
-		memmove(&element2[h][14][0], &element2[h][14][3], strlen(element2[h][14]));		// get only ip adress without "ip="
+	for (h=1; h<numRowsNDS; h++) {
+		memmove(&tableNDS[h][NDSMAC][0], &tableNDS[h][NDSMAC][4], strlen(tableNDS[h][NDSMAC]));			// get only mac adress without "mac="
+		memmove(&tableNDS[h][NDSQOTA][0], &tableNDS[h][NDSQOTA][6], strlen(tableNDS[h][NDSQOTA]));		// get only quota without "quota="
+		memmove(&tableNDS[h][NDSIP][0], &tableNDS[h][NDSIP][3], strlen(tableNDS[h][NDSIP]));					// get only ip adress without "ip="
+		memmove(&tableNDS[h][NDSNAME][0], &tableNDS[h][NDSNAME][5], strlen(tableNDS[h][NDSNAME]));		// get only username without "user="
 	}
 
-	for (i=1; i<numRows; i++) {		// for every line in usage.txt
-		for (j=numRows2; j>0; j--) {		// for every line in ndslog.log
-			if ( (strcmp(element[i][0], element2[j][13]) == 0) && (strstr(element2[j][6], "status=Client") != NULL) && (strcmp(element[i][1], element2[j][14]) == 0) ) {	// if same mac adress and client connected
+	for (i=1; i<numRowsUsageDB; i++) {		// for every line in usage.txt
+		for (j=numRowsNDS; j>0; j--) {		// for every line in ndslog.log
+			if ( (strcmp(tableUsageDB[i][DBMAC], tableNDS[j][NDSMAC]) == 0) && (strstr(tableNDS[j][NDSSTACO], "status=Client") != NULL) && (strcmp(tableUsageDB[i][DBIP], tableNDS[j][NDSIP]) == 0) ) {	// if same mac and ip address and client connected
 				k++;
 			}
 		}
 	}
-	return k;
+	return k;	// return number of clients
 }
 
 
-int getClientUsage(FILE *fp, char element[100][10][512], char element2[100][19][512], char element3[100][10][512], int numRows, int numRows2, int numRows3, int numClients, int numClients2, struct lws *wsi_in) {
-
-	int i = 0, j = 0, k = 0, num = 0;
-	char buf1[MAXX], buf2[MAXX];	
-	int diffDownload, diffUpload;
+void routerConnectToServer(FILE *fp, struct lws *wsi_in) {
 	
-	num = numClients - numClients2;
+	char* sRouter = NULL;
+	json_t *router = json_object();
 
-	for (j=numRows2; j>0; j--) {		// for every line in usage.txt
-		for (i=1; i<numRows; i++) {		// for every line in ndslog.log
-			if ( (strcmp(element[i][0], element2[j][13]) == 0) && (strstr(element2[j][6], "status=Client") != NULL) && (strcmp(element[i][1], element2[j][14]) == 0) ) {	// if same mac adress and client connected
+	json_object_set_new(router, "action", json_string("router"));
+	json_object_set_new(router, "name", json_string("UpLinkRouter"));
+	
+	sRouter = json_dumps(router, 0);
+	writeToServer(wsi_in, sRouter, -1);
+	
+	json_decref(router);
+	free(sRouter);
+}
+
+
+void isAlreadyClient(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], int numRowsNDS) {
+	int i = 0, j = 0,match = 0;
+
+	for (j=numRowsNDS; j>0; j--) {		// for every line in ndslog.log
+		for (i=numRowsNDS; i>0; i--) {		// for every line in ndslog.log
+	
+			if ( (strcmp(tableNDS[j][NDSNAME], tableNDS[i][NDSNAME]) == 0) && (strcmp(tableNDS[j][NDSMAC], tableNDS[i][NDSMAC]) == 0) ) {
+				match++;
+			}
+
+			if (match == 3) {
+				tableNDS[i][NDSMAC];
+				tableNDS[i][NDSQOTA] = tableNDS[i][NDSQOTA] + tableNDS[j][NDSQOTA];
+			}
+		}
+	}
+	fprintf(fp,"matches : %d\n", k);
+}
+
+
+int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsUsageDB2, int numRowsNDS, int numClientsUsageDB, int numClientsUsageDB2, struct lws *wsi_in) {
+
+	int i = 0, j = 0, k = 0, diffClients = 0;
+	//char buf1[MAXBUF], buf2[MAXBUF];	
+	unsigned long int diffDownload, diffUpload, sum;
+	
+	diffClients = numClientsUsageDB - numClientsUsageDB2;	// difference between actual client and from 15s ago
+
+	for (j=numRowsNDS; j>0; j--) {		// for every line in ndslog.log
+		for (i=1; i<numRowsUsageDB; i++) {		// for every line in usage.txt
+			if ( (strcmp(tableUsageDB[i][DBMAC], tableNDS[j][NDSMAC]) == 0) && (strcmp(tableUsageDB[i][DBIP], tableNDS[j][NDSIP]) == 0) && (strstr(tableNDS[j][NDSSTACO], "status=Client") != NULL) ) {	// if same mac and ip address and client connected
 				k++;
-				if (num > 0) {
-					sprintf(buf1, "ADD CLIENT %s", element2[j][3]);
-					websocket_write_back(wsi_in, buf1, -1);
-					num--;
+				if (diffClients > 0) {
+					char* sConnect = NULL;
+					json_t *connect = json_object();
+
+					json_object_set_new(connect, "action", json_string("connect"));
+					json_object_set_new(connect, "name", json_string(tableNDS[j][NDSNAME]));
+				
+					sConnect = json_dumps(connect, 0);
+					writeToServer(wsi_in, sConnect, -1);
+					
+					json_decref(connect);
+					free(sConnect);
 				}
 				
-				if ( (numRows == numRows3) && (strcmp(element[i][0], element3[i][0]) == 0) ) {
+				if ( (numRowsUsageDB == numRowsUsageDB2) && (strcmp(tableUsageDB[i][DBMAC], tableUsageDB2[i][DBMAC]) == 0) ) {
 					
-					diffDownload = (atoi(element[i][3])) - (atoi(element3[i][3]));
-					diffUpload = (atoi(element[i][4])) - (atoi(element3[i][4]));
+					diffDownload = ((unsigned long)atoi(tableUsageDB[i][DBDWNLD])) - ((unsigned long)atoi(tableUsageDB2[i][DBDWNLD]));		// difference between actual total download and from 15s ago
+					diffUpload = ((unsigned long)atoi(tableUsageDB[i][DBUPLD])) - ((unsigned long)atoi(tableUsageDB2[i][DBUPLD]));		// difference between actual total upload and from 15s ago
+					sum = diffUpload + diffDownload;		// sum of download and upload bits used in 15 seconds
 
-					if ( (diffDownload == (atoi(element[i][3]))) || (diffUpload == (atoi(element[i][4]))) ) {
+					if ( (diffDownload == (atoi(tableUsageDB[i][DBDWNLD]))) || (diffUpload == (atoi(tableUsageDB[i][DBUPLD]))) ) {
 						diffDownload = 0;
 						diffUpload = 0;
 					}
 
-					if ( (diffDownload != 0) && (diffUpload != 0) ) {
-						sprintf(buf2, "COUNT %s %d %d %d %d", element2[j][3], diffDownload, diffUpload, atoi(element[i][3]), atoi(element[i][4]));
-						websocket_write_back(wsi_in, buf2, -1);
+					if ( (diffDownload != 0) || (diffUpload != 0) ) {
+						char* sTransfer = NULL;
+						json_t *transfer = json_object();
+
+						json_object_set_new(transfer, "action", json_string("transfer"));
+						json_object_set_new(transfer, "nameOrigin", json_string(tableNDS[j][NDSNAME]));
+						json_object_set_new(transfer, "nameDestination", json_string("UpLinkRouter"));
+						json_object_set_new(transfer, "dataInBytes", json_integer(sum));
+
+						sTransfer = json_dumps(transfer, 0);
+						writeToServer(wsi_in, sTransfer, -1);
+
+						json_decref(transfer);
+						free(sTransfer);
 					}
 				}
 				
-				//if ( (strcmp(element[i][3], element2[j][2]) >= 0) || (strcmp(element[i][4], element2[j][2]) >= 0) ) {
-					//sprintf(buf2, "User %s has exceeded quota of %s bytes !\n", element2[j][3], element2[j][2]);
-					//websocket_write_back(wsi_in, buf2, -1);
+				//if ( (strcmp(tableUsageDB[i][3], tableNDS[j][2]) >= 0) || (strcmp(tableUsageDB[i][4], tableNDS[j][2]) >= 0) ) {
+					//sprintf(buf2, "User %s has exceeded quota of %s bytes !\n", tableNDS[j][3], tableNDS[j][2]);
+					//writeToServer(wsi_in, buf2, -1);
 					//fprintf(fp, buf2);	// Quota limit exceed
 
-					//sprintf(buf3, "Download : %s - Upload : %s - Total download : %s - Total upload : %s\n\n", aaa, aaa, element[i][3], element[i][4]);
-					//websocket_write_back(wsi_in, buf3, -1);
+					//sprintf(buf3, "Download : %s - Upload : %s - Total download : %s - Total upload : %s\n\n", aaa, aaa, tableUsageDB[i][3], tableUsageDB[i][4]);
+					//writeToServer(wsi_in, buf3, -1);
 					//fprintf(fp, buf3);
 				//}
 			}
@@ -318,6 +356,5 @@ int getClientUsage(FILE *fp, char element[100][10][512], char element2[100][19][
 		}
 	}
 	fprintf(fp, "\n");
-	websocket_write_back(wsi_in, "\n\n", -1);
-	return k;
+	return k;		// return number of clients
 }

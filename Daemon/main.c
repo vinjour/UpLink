@@ -1,100 +1,21 @@
 #include "main.h"
 
-struct session_data {
-	int fd;
-};
-
-struct lws_protocols protocols[] = {		// first protocol must always be HTTP handler
-	{
-		"websockets",	// name
-		&ws_callback,	// callback
-		sizeof(struct session_data),		// per session data size
-		0,		// max frame size / rx buffer
-	},
-	{
-		NULL, NULL, 0, 0	// end of list
-	}
-};
 
 int main(int argc, char **argv) {
 
-	FILE *fp= NULL;
-	pid_t process_id = 0;
-	pid_t sid = 0;
-
-	char element[100][10][512], element2[100][19][512], element3[100][10][512];
-	int timeLimit = 600;		// 10 minutes
-	int numRows = 0, numRows2 = 0, numRows3 = 0, numClients = 0, numClients2 = 0;
+	char tableUsageDB[MAXROWS][10][MAXSTR], tableUsageDB2[MAXROWS][10][MAXSTR], tableNDS[MAXROWS][18][MAXSTR];
+	int numRowsUsageDB = 0, numRowsUsageDB2 = 0, numRowsNDS = 0, numClientsUsageDB = 0, numClientsUsageDB2 = 0;
 	int count = 1;
 
 	clock_t end, start = clock();
 	double total;
 
-	struct sigaction act;		// register the signal SIGINT handler
-	act.sa_handler = INT_HANDLER;
-	act.sa_flags = 0;
-	sigemptyset(&act.sa_mask);
-	sigaction( SIGINT, &act, 0);
+	FILE *fp = daemonize();		// create the daemon and return the logfile
 
-	struct lws_context *context = NULL;
-	struct lws_context_creation_info info;
-	struct lws *wsi = NULL;
+	struct lws_context *context = createContext(fp);		// create websocket handler
+	struct lws_client_connect_info ccinfo = createInfoForWSI(context);		// create client connection parameters
+	struct lws *wsi = lws_client_connect_via_info(&ccinfo);		// create a client connection
 
-	memset(&info, 0, sizeof info);		// parameters used to create context
-	info.port = CONTEXT_PORT_NO_LISTEN;
-	info.iface = NULL;
-	info.protocols = protocols;
-	info.ssl_cert_filepath = NULL;	// ssl support
-	info.ssl_private_key_filepath = NULL;	// ssl support
-	info.extensions = NULL;
-	info.gid = -1;
-	info.uid = -1;
-	info.options = 0;
-
-	// lws_daemonize("/var/lock/procd_.lock");
-	
-	context = lws_create_context(&info);	// create a websocket handler
-
-	struct lws_client_connect_info ccinfo = {0};		// Client connection parameters
-	ccinfo.context = context;
-	ccinfo.address = "192.168.2.213";
-	ccinfo.port = 8000;
-	ccinfo.path = "/";
-	ccinfo.host = lws_canonical_hostname( context );
-	ccinfo.origin = "origin";
-	ccinfo.protocol = protocols[0].name;
-	wsi = lws_client_connect_via_info(&ccinfo);		// create a client connection
-
-	process_id = fork();		// create child process
-
-	if (process_id < 0) {		// indication of fork() failure
-		printf("fork failed!\n");
-		exit(1);
-	}
-
-	if (process_id > 0) {		// parent process, need to kill it to stop the daemon
-		printf("process_id of child process %d \n", process_id);
-		exit(0);
-	}
-
-	umask(0);		// unmask the file mode
-
-	sid = setsid();		// set new session
-	if(sid < 0) {
-		exit(1);
-	}
-
-	chdir("/root");	// change the current working directory to root.
-
-	close(STDIN_FILENO);		// close stdin stdout and stderr
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
-
-	fp = fopen ("Log.txt", "w+");		// open a log file in write mode.
-
-	if (context == NULL) {
-		fprintf(fp, "[Main] context is NULL.\n");
-	}
 	fprintf(fp, "[Main] context created.\n");
 
 	if (wsi == NULL) {
@@ -111,38 +32,40 @@ int main(int argc, char **argv) {
 			wsi = lws_client_connect_via_info(&ccinfo);		// create a client connection
 		}
 
-		system("wrtbwmon update /tmp/usage.db");		// update db file
+		system("wrtbwmon update /tmp/usage.db");		// update usage.db file
 		
-		// Implement and call some function that does core work for this daemon
-		fprintf(fp, "Tudo bem !\n\n");
+		fprintf(fp, "\nTudo bem !\n");
 		
-		lws_service(context, 100);	// execute the event loop once, and wait for a maximum of 100 ms
+		lws_service(context, TIMELOOPWS);	// execute the event loop once, and wait for a maximum of TIMELOOPWS ms
 
-		addRowsAndCols();
-		numRows = getUsageDataFromTxt(fp, element);
-		numRows2 = getCatchPageData(fp, element2);
+		// every second
+		copyUsageDBtoUsagetxt();
+		numRowsUsageDB = getDatasFromUsageTxt(fp, tableUsageDB);
+		numRowsNDS = getDatasFromNDSlog(fp, tableNDS);
+		numClientsUsageDB = countNumClients(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
+		//timeOut(fp, tableUsageDB, numRowsUsageDB, timeLimit);
 
-		if (count > 0) {
-			void addRowsAndCols2();
+		end = clock();
+		total = (double)(end-start) / CLOCKS_PER_SEC * 100;		// total in seconds
+
+		// just once after (2*TIMEONCE) seconds
+		if( (total >= TIMEONCE) && (count > 0) ) {
+			copyUsageDBtoUsage2txt();
+			routerConnectToServer(fp, wsi);
 			count--;
 		}
 
-		numClients = countNumClients(fp, element, element2, numRows, numRows2);
-
-		end = clock();
-		total = (double)(end-start) / CLOCKS_PER_SEC * 100;		// total in sec
-
-		if(total >= 10) {	// every ~10s
-			numClients2 = getClientUsage(fp, element, element2, element3, numRows, numRows2, numRows3, numClients, numClients2, wsi);
-			addRowsAndCols2();
-			addWalletIDandQuota(fp, element, element2, element3, numRows, numRows2, numRows3);
-			numRows3 = getUsageDataFromTxt2(fp, element3);
-			start = clock();
+		// every (2*TIMEEVERY) seconds
+		if(total >= TIMEEVERY) {
+			numClientsUsageDB2 = sendDatasToServer(fp, tableUsageDB, tableUsageDB2, tableNDS, numRowsUsageDB, numRowsUsageDB2, numRowsNDS, numClientsUsageDB, numClientsUsageDB2, wsi);
+			copyUsageDBtoUsage2txt();
+			numRowsUsageDB2 = getDatasFromUsage2Txt(fp, tableUsageDB2);
+			isAlreadyClient(fp, tableNDS, numRowsNDS);
+			start = clock();	// restart the clock
 		}
-		timeOut(fp, element, numRows, timeLimit);
 	}
 
 	fprintf(fp, "Exiting\n");
-	//lws_context_destroy(context);		// destroy the context object
+	lws_context_destroy(context);		// destroy the context object
 	fclose(fp);
 }

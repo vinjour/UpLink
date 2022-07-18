@@ -9,23 +9,59 @@
 #include <signal.h>
 #include <math.h>
 #include <libwebsockets.h>
+#include <jansson.h>
 
-#define MAXX 2048
 
-// functions form functions.c
-void addRowsAndCols();
-void addRowsAndCols2();
-int getUsageDataFromTxt2(FILE *fp, char element3[100][10][512]);
-int getUsageDataFromTxt(FILE *fp, char element[100][10][512]);
-void timeOut(FILE *fp, char element[100][10][512], int numRows, int timeLimit);
-int getCatchPageData(FILE *fp, char element2[100][19][512]);
-int getClientUsage(FILE *fp, char element[100][10][512], char element2[100][19][512], char element3[100][10][512], int numRows, int numRows2, int numRows3, int numClients, int numClients2, struct lws *wsi_in);
-void addWalletIDandQuota(FILE *fp, char element[100][10][512], char element2[100][19][512], char element3[100][10][512], int numRows, int numRows2, int numRows3);
-int countNumClients(FILE *fp, char element[100][10][512], char element2[100][19][512], int numRows, int numRows2);
+#define IPADDRESS "192.168.2.213"		// ip address of the websocket server
+#define PORT 8002						// communication port for websocket
+
+#define LOGFILE "Log.txt"	// name of the logfile
+
+#define MAXBUF 2048		// max size of a buffer
+#define MAXROWS 100		// max number of rows
+#define MAXSTR 512			// max size of a string
+
+#define TIMELOOPWS 100	// execution time for the events in websocket client  (in milliseconds)
+#define TIMEONCE 3			// time to execute single actions   (in seconds)
+#define TIMEEVERY 5			// time to execute repetitive actions  (in seconds)
+#define TIMELIMIT 3600		// time limit before an inactive user is removed (in seconds)
+
+#define DBMAC 0			// mac address of usage.db
+#define DBIP 1			// ip address of usage.db
+#define DBIFACE 2		// interface used (wlan, eth0, ...) of usage.db
+#define DBDWNLD 3		// total download of usage.db
+#define DBUPLD 4		// total upload of usage.db
+#define DBTOTAL 5		// total (download+upload) of usage.db
+#define DBFS 6			// date and time of first seen user of usage.db
+#define DBLS 7			// date and time of last seen user of usage.db
+#define DBIDW 8			// id wallet of usage.db
+#define DBQOTA 9		// quota of usage.db
+
+#define NDSQOTA 2		// mac address of ndslog.log
+#define NDSNAME 3		// username of ndslog.log
+#define NDSEMAIL 4		// mail address of ndslog.log
+#define NDSSTACO 5		// connection status of ndslog.log
+#define NDSMAC 12		// mac address of ndslog.log
+#define NDSIP 13			// ip address of ndslog.log
+
+
+// functions from functions.c
+void copyUsageDBtoUsagetxt();
+void copyUsageDBtoUsage2txt();
+int getDatasFromUsageTxt(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR]);
+int getDatasFromUsage2Txt(FILE *, char tableUsageDB2[MAXROWS][10][MAXSTR]);
+int getDatasFromNDSlog(FILE *, char tableNDS[MAXROWS][18][MAXSTR]);
+void timeOut(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], int);
+int countNumClients(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
+void routerConnectToServer(FILE *, struct lws*);
+void isAlreadyClient(FILE *, char tableNDS[MAXROWS][18][MAXSTR], int);
+int sendDatasToServer(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int, int, int, int, struct lws*);
 
 // functions from client.c
-void INT_HANDLER(int signo);
-int websocket_write_back(struct lws *wsi_in, char *str, int str_size_in);
-int ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
-void *pthread_routine(void *tool_in);
+struct lws_context *createContext(FILE *);
+struct lws_client_connect_info createInfoForWSI(struct lws_context *context);
+int writeToServer(struct lws*, char*, int);
+int webSocketCallback(struct lws*, enum lws_callback_reasons, void*, void*, size_t);
 
+// functions from daemonize.c
+FILE *daemonize();
