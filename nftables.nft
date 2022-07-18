@@ -1,0 +1,80 @@
+#!/usr/sbin/nft -f
+
+define lan = br-lan
+define wan = eth0
+define guest = wlan1
+
+flush ruleset
+
+table inet filter {
+
+	set allow_host {
+		typeof ip daddr
+		elements = { 192.168.2.213, 192.168.3.113 }
+	}
+
+	quota guest {
+		until 2 mbytes used 0 bytes
+	}
+
+	chain INPUT {
+		type filter hook input priority 0; policy accept;
+		
+		ct state { established, related } counter accept comment "allow wan est, relat"
+		ct state invalid counter drop
+		iif $wan tcp dport {ssh} counter accept comment "allow ssh"
+		iif $lan counter accept comment "allow local packets"
+		iif $guest counter accept comment "allow wlan1 packets"
+	}
+
+	chain FORWARD {
+		type filter hook forward priority 0; policy accept;
+		
+		ip daddr @allow_host goto ALLOW_FORWARD
+		ip saddr @allow_host goto ALLOW_FORWARD
+		ip daddr 192.168.0.0/16 goto RESTRICTED_FORWARD
+		ip saddr 192.168.0.0/16 goto RESTRICTED_FORWARD
+	}
+
+	chain ALLOW_FORWARD {
+		limit rate over 100 mbytes/second drop
+		
+		ct state { established, related } counter accept comment "allow wan est, relat"
+		ct state invalid counter drop
+		iif $lan oif $wan counter accept comment "allow lan to wan"
+		iif $guest oif $wan counter accept comment "allow guest to wan"
+		iif $guest ip daddr 192.168.3.1 tcp dport { 53, 67 } counter accept
+		iif $wan ip daddr 192.168.2.1 tcp dport { https } counter accept comment "forward https"
+		oifname $wan tcp flags syn tcp option maxseg size set 1500
+	}
+
+	chain RESTRICTED_FORWARD {
+		limit rate over 2 mbytes/second drop
+		
+		#ip daddr 192.168.3.193 quota name "guest" drop
+		
+		ct state { established, related } counter accept comment "allow wan est, relat"
+		ct state invalid counter drop
+		iif $lan oif $wan counter accept comment "allow lan to wan"
+		iif $guest oif $wan counter accept comment "allow guest to wan"
+		iif $guest ip daddr 192.168.3.1 tcp dport { 53, 67 } counter accept
+		iif $wan ip daddr 192.168.2.1 tcp dport { https } counter accept comment "forward https"
+		oifname $wan tcp flags syn tcp option maxseg size set 1500
+	}
+
+	chain OUTPUT {
+		type filter hook output priority 0; policy accept;
+	}
+}
+
+table inet nat {
+
+	chain PREROUTING {
+		type filter hook prerouting priority -100; policy accept;
+	}
+
+	chain POSTROUTING {
+		type filter hook postrouting priority 100; policy accept;
+		#oif $wan counter masquerade
+	}
+}
