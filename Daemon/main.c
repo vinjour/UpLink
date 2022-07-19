@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
 		copyUsageDBtoUsagetxt();
 		numRowsUsageDB = getDatasFromUsageTxt(fp, tableUsageDB);
 		numRowsNDS = getDatasFromNDSlog(fp, tableNDS);
+		isAlreadyClient(fp, tableNDS, numRowsNDS);
 		numClientsUsageDB = countNumClients(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
 		//timeOut(fp, tableUsageDB, numRowsUsageDB, timeLimit);
 
@@ -60,7 +61,6 @@ int main(int argc, char **argv) {
 			numClientsUsageDB2 = sendDatasToServer(fp, tableUsageDB, tableUsageDB2, tableNDS, numRowsUsageDB, numRowsUsageDB2, numRowsNDS, numClientsUsageDB, numClientsUsageDB2, wsi);
 			copyUsageDBtoUsage2txt();
 			numRowsUsageDB2 = getDatasFromUsage2Txt(fp, tableUsageDB2);
-			isAlreadyClient(fp, tableNDS, numRowsNDS);
 			start = clock();	// restart the clock
 		}
 	}

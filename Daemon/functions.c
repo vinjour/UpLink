@@ -13,9 +13,9 @@ void copyUsageDBtoUsagetxt() {
 	ssize_t result;
 	char buffer[MAXBUF];
 	
-	for ( ; ; ) {
+	while (1) {
 	
-		 result = getline( &line, &len, in );
+		result = getline( &line, &len, in );
 		if ( result == -1 ) {
 			break;
 		}
@@ -46,9 +46,9 @@ void copyUsageDBtoUsage2txt() {
 	ssize_t result;
 	char buffer[MAXBUF];
 	
-	for ( ; ; ) {
+	while (1) {
 	
-		 result = getline( &line, &len, in );
+		result = getline( &line, &len, in );
 		if ( result == -1 ) {
 			break;
 		}
@@ -269,32 +269,40 @@ void routerConnectToServer(FILE *fp, struct lws *wsi_in) {
 
 
 void isAlreadyClient(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], int numRowsNDS) {
-	int i = 0, j = 0,match = 0;
-
+	int i = 0, j = 0, match = 0;
+ 
 	for (j=numRowsNDS; j>0; j--) {		// for every line in ndslog.log
 		for (i=numRowsNDS; i>0; i--) {		// for every line in ndslog.log
 	
+			int newQuota = 0;
+			char buffer[10];
+
 			if ( (strcmp(tableNDS[j][NDSNAME], tableNDS[i][NDSNAME]) == 0) && (strcmp(tableNDS[j][NDSMAC], tableNDS[i][NDSMAC]) == 0) ) {
 				match++;
 			}
 
-			if (match == 3) {
-				tableNDS[i][NDSMAC];
-				tableNDS[i][NDSQOTA] = tableNDS[i][NDSQOTA] + tableNDS[j][NDSQOTA];
+			if (match == 2) {
+				newQuota = atoi(tableNDS[i][NDSQOTA]) + atoi(tableNDS[j][NDSQOTA]);
+				sprintf(buffer, "%d", newQuota);
+				strcpy(tableNDS[i][NDSQOTA], buffer);
+				memmove(&tableNDS[j][NDSMAC][0], &tableNDS[j][NDSMAC][2], strlen(tableNDS[j][NDSMAC]));
+				fprintf(fp, "NewQuota1 : %d\n", newQuota);
+				fprintf(fp, "NewQuota2 : %s\n", tableNDS[i][NDSQOTA]);
+				fprintf(fp, "newIP : %s\n", tableNDS[j][NDSMAC]);
 			}
+			fprintf(fp,"matches : %d\n", match);
 		}
+		match = 0;
 	}
-	fprintf(fp,"matches : %d\n", k);
 }
 
 
 int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsUsageDB2, int numRowsNDS, int numClientsUsageDB, int numClientsUsageDB2, struct lws *wsi_in) {
 
 	int i = 0, j = 0, k = 0, diffClients = 0;
-	//char buf1[MAXBUF], buf2[MAXBUF];	
 	unsigned long int diffDownload, diffUpload, sum;
 	
-	diffClients = numClientsUsageDB - numClientsUsageDB2;	// difference between actual client and from 15s ago
+	diffClients = numClientsUsageDB - numClientsUsageDB2;	// difference between actual clients and those from 15s ago
 
 	for (j=numRowsNDS; j>0; j--) {		// for every line in ndslog.log
 		for (i=1; i<numRowsUsageDB; i++) {		// for every line in usage.txt
@@ -312,6 +320,7 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 					
 					json_decref(connect);
 					free(sConnect);
+					diffClients--;
 				}
 				
 				if ( (numRowsUsageDB == numRowsUsageDB2) && (strcmp(tableUsageDB[i][DBMAC], tableUsageDB2[i][DBMAC]) == 0) ) {
@@ -320,7 +329,7 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 					diffUpload = ((unsigned long)atoi(tableUsageDB[i][DBUPLD])) - ((unsigned long)atoi(tableUsageDB2[i][DBUPLD]));		// difference between actual total upload and from 15s ago
 					sum = diffUpload + diffDownload;		// sum of download and upload bits used in 15 seconds
 
-					if ( (diffDownload == (atoi(tableUsageDB[i][DBDWNLD]))) || (diffUpload == (atoi(tableUsageDB[i][DBUPLD]))) ) {
+					if ( (diffDownload == (atoi(tableUsageDB[i][DBDWNLD]))) || (diffUpload == (atoi(tableUsageDB[i][DBUPLD]))) ) {		// specific for special bug event
 						diffDownload = 0;
 						diffUpload = 0;
 					}
