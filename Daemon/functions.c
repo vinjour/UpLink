@@ -1,6 +1,7 @@
 #include "main.h"
 
 
+// Copy usage.db to usage.txt adding 2 columns : walletID and quota
 void copyUsageDBtoUsagetxt() {
 
 	char *file="/tmp/usage.db";
@@ -34,6 +35,7 @@ void copyUsageDBtoUsagetxt() {
 }
 
 
+// Copy usage.db to usage2.txt adding 2 columns : walletID and quota
 void copyUsageDBtoUsage2txt() {
 
 	char *file="/tmp/usage.db";
@@ -67,6 +69,7 @@ void copyUsageDBtoUsage2txt() {
 }
 
 
+// Get elements from usage.txt, put it in a 3D array and return number of rows
 int getDatasFromUsageTxt(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR]) {
 	
 	char tab[MAXROWS][MAXBUF];
@@ -110,6 +113,7 @@ int getDatasFromUsageTxt(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR]) {
 }
 
 
+// get elements from usage2.txt, put it in a 3D array and return number of rows
 int getDatasFromUsage2Txt(FILE *fp, char tableUsageDB2[MAXROWS][10][MAXSTR]) {
 	
 	char tab[MAXROWS][MAXBUF];
@@ -153,6 +157,7 @@ int getDatasFromUsage2Txt(FILE *fp, char tableUsageDB2[MAXROWS][10][MAXSTR]) {
 }
 
 
+// get elements from ndslog.log, put it in a 3D array and return number of rows
 int getDatasFromNDSlog(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR]) {
 
 	char tab[100][MAXBUF];
@@ -210,26 +215,28 @@ int getDatasFromNDSlog(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR]) {
 }
 
 
-//void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], int numRowsUsageDB) {
+// check if client is not connected since timeLimit and deletes it
+void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], int numRowsUsageDB) {
 
-	//struct tm mytm;
-	//time_t t, now=time(NULL);
-	//int i;
+	struct tm mytm;
+	time_t t, now=time(NULL);
+	int i;
 
-	//for (i=1; i<numRows; i++) {
-		//strptime(tableUsageDB[i][DBLS],"%d-%m-%Y_%H:%M:%S", &mytm);	// convert string datetime into timestamp
-		//t = mktime(&mytm);
-		//int diff = now-t;		// calculate the difference between actual time and last seen time
+	for (i=1; i<numRowsUsageDB; i++) {
+		strptime(tableUsageDB[i][DBLS],"%d-%m-%Y_%H:%M:%S", &mytm);	// convert string datetime into timestamp
+		t = mktime(&mytm);
+		int diff = now-t;		// calculate the difference between actual time and last seen time
 		
-		//if (diff >= TIMELIMIT) {
-			//fprintf(fp, "Exceeded time limit of %d seconds !\n", diff);
-			//fprintf(fp, "User %s will be kicked out !\n", tableUsageDB[i][DBMAC]);
-		//}
-	//}
-	//fprintf(fp, "\n");
-//}
+		if (diff >= TIMELIMIT) {
+			fprintf(fp, "Exceeded time limit of %d seconds !\n", diff);
+			fprintf(fp, "User %s will be kicked out !\n", tableUsageDB[i][DBMAC]);
+		}
+	}
+	fprintf(fp, "\n");
+}
 
 
+// return number of clients (registered to usage.txt and ndslog.log)
 int countNumClients(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS) {
 
 	int i = 0, j = 0, h = 0, k = 0;
@@ -252,6 +259,7 @@ int countNumClients(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char table
 }
 
 
+// check if router is connected to server and sends validation to server
 void routerConnectToServer(FILE *fp, struct lws *wsi_in) {
 	
 	char* sRouter = NULL;
@@ -261,13 +269,14 @@ void routerConnectToServer(FILE *fp, struct lws *wsi_in) {
 	json_object_set_new(router, "name", json_string("UpLinkRouter"));
 	
 	sRouter = json_dumps(router, 0);
+	lws_callback_on_writable(wsi_in);
 	writeToServer(wsi_in, sRouter, -1);
 	
 	json_decref(router);
 	free(sRouter);
 }
 
-
+// check if a client already registered in ndslog.log, add quota of both and delete the 2nd connection
 void isAlreadyClient(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], int numRowsNDS) {
 	int i = 0, j = 0, match = 0;
  
@@ -296,8 +305,10 @@ void isAlreadyClient(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], int numRowsND
 	}
 }
 
-
-int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsUsageDB2, int numRowsNDS, int numClientsUsageDB, int numClientsUsageDB2, struct lws *wsi_in) {
+// return number of clients (registered to usage.txt and ndslog.log), send to server each new client's connection and each data transfer
+int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR], 
+							char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsUsageDB2, int numRowsNDS,
+							 int numClientsUsageDB, int numClientsUsageDB2, struct lws *wsi_in) {
 
 	int i = 0, j = 0, k = 0, diffClients = 0;
 	unsigned long int diffDownload, diffUpload, sum;
@@ -316,6 +327,7 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 					json_object_set_new(connect, "name", json_string(tableNDS[j][NDSNAME]));
 				
 					sConnect = json_dumps(connect, 0);
+					lws_callback_on_writable(wsi_in);
 					writeToServer(wsi_in, sConnect, -1);
 					
 					json_decref(connect);
@@ -344,6 +356,7 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 						json_object_set_new(transfer, "dataInBytes", json_integer(sum));
 
 						sTransfer = json_dumps(transfer, 0);
+						lws_callback_on_writable(wsi_in);
 						writeToServer(wsi_in, sTransfer, -1);
 
 						json_decref(transfer);
@@ -353,10 +366,12 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 				
 				//if ( (strcmp(tableUsageDB[i][3], tableNDS[j][2]) >= 0) || (strcmp(tableUsageDB[i][4], tableNDS[j][2]) >= 0) ) {
 					//sprintf(buf2, "User %s has exceeded quota of %s bytes !\n", tableNDS[j][3], tableNDS[j][2]);
+					//lws_callback_on_writable(wsi_in);
 					//writeToServer(wsi_in, buf2, -1);
 					//fprintf(fp, buf2);	// Quota limit exceed
 
 					//sprintf(buf3, "Download : %s - Upload : %s - Total download : %s - Total upload : %s\n\n", aaa, aaa, tableUsageDB[i][3], tableUsageDB[i][4]);
+					//lws_callback_on_writable(wsi_in);
 					//writeToServer(wsi_in, buf3, -1);
 					//fprintf(fp, buf3);
 				//}

@@ -30,38 +30,30 @@ int writeToServer(struct lws *wsi_in, char *str, int str_size_in) {
 // when an event occurs on a connection under a certain protocol, the webSocketCallback function executed
 int webSocketCallback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
 
-	int destroy_flag = 0, connection_flag = 0;
-
 	switch (reason) {		// reason : the event that caused the callback
 
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:	// callback after connecting to the server
 			printf("[Main Service] Connect with server success.\n");
-			connection_flag = 1;
+			lws_callback_on_writable(wsi);
 			break;
 
 		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:		// callback after an error during connection
 			printf("[Main Service] Connect with server error.\n");
-			connection_flag = 0;
 			break;
 
 		case LWS_CALLBACK_CLOSED:		// callback after closing the connection
 			printf("[Main Service] LWS_CALLBACK_CLOSED\n");
-			destroy_flag = 1;
-			connection_flag = 0;
 			break;
 
 		case LWS_CALLBACK_CLIENT_RECEIVE:		// callback after receiving the server data
 			printf("[Main Service] Client received : %s\n", (char *)in);
-			connection_flag = 1;
 			break;
 
 		case LWS_CALLBACK_CLIENT_WRITEABLE:		// callback when this client can send data
 			printf("[Main Service] On writeable is called\n");
-			connection_flag = 1;
 			break;
 
 		default:
-			connection_flag = 1;
 			break;
 	}
 
@@ -74,7 +66,7 @@ struct session_data {
 };
 
 
-struct lws_protocols protocols[] = {		// first protocol must always be HTTP handler
+struct lws_protocols protocols[] = {
 	{
 		"websockets",	// name
 		&webSocketCallback,		// callback
@@ -87,6 +79,7 @@ struct lws_protocols protocols[] = {		// first protocol must always be HTTP hand
 };
 
 
+// create websocket handler and return context
 struct lws_context *createContext(FILE *fp) {
 
 	struct lws_context_creation_info info;
@@ -109,6 +102,8 @@ struct lws_context *createContext(FILE *fp) {
 	return context;
 }
 
+
+// create client connection parameters and return ccinfo
 struct lws_client_connect_info createInfoForWSI(struct lws_context *context) {
 
 	struct lws_client_connect_info ccinfo = {0};		// client connection parameters

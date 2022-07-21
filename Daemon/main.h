@@ -55,7 +55,8 @@ void timeOut(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], int);
 int countNumClients(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
 void routerConnectToServer(FILE *, struct lws*);
 void isAlreadyClient(FILE *, char tableNDS[MAXROWS][18][MAXSTR], int);
-int sendDatasToServer(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int, int, int, int, struct lws*);
+int sendDatasToServer(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR],
+							 char tableNDS[MAXROWS][18][MAXSTR], int, int, int, int, int, struct lws*);
 
 // functions from client.c
 struct lws_context *createContext(FILE *);

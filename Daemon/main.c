@@ -10,10 +10,10 @@ int main(int argc, char **argv) {
 	clock_t end, start = clock();
 	double total;
 
-	FILE *fp = daemonize();		// create the daemon and return the logfile
+	FILE *fp = daemonize();
 
-	struct lws_context *context = createContext(fp);		// create websocket handler
-	struct lws_client_connect_info ccinfo = createInfoForWSI(context);		// create client connection parameters
+	struct lws_context *context = createContext(fp);
+	struct lws_client_connect_info ccinfo = createInfoForWSI(context);
 	struct lws *wsi = lws_client_connect_via_info(&ccinfo);		// create a client connection
 
 	fprintf(fp, "[Main] context created.\n");
@@ -21,7 +21,6 @@ int main(int argc, char **argv) {
 	if (wsi == NULL) {
 		fprintf(fp, "[Main] wsi create error.\n");
 	}
-
 	fprintf(fp, "[Main] wsi create success.\n\n");
 
 	while (1) {
@@ -52,13 +51,15 @@ int main(int argc, char **argv) {
 		// just once after (2*TIMEONCE) seconds
 		if( (total >= TIMEONCE) && (count > 0) ) {
 			copyUsageDBtoUsage2txt();
-			routerConnectToServer(fp, wsi);
+			routerConnectToServer(fp, wsi);	
 			count--;
 		}
 
 		// every (2*TIMEEVERY) seconds
 		if(total >= TIMEEVERY) {
-			numClientsUsageDB2 = sendDatasToServer(fp, tableUsageDB, tableUsageDB2, tableNDS, numRowsUsageDB, numRowsUsageDB2, numRowsNDS, numClientsUsageDB, numClientsUsageDB2, wsi);
+			numClientsUsageDB2 = sendDatasToServer(fp, tableUsageDB, tableUsageDB2, tableNDS,
+															numRowsUsageDB, numRowsUsageDB2, numRowsNDS,
+															numClientsUsageDB, numClientsUsageDB2, wsi);
 			copyUsageDBtoUsage2txt();
 			numRowsUsageDB2 = getDatasFromUsage2Txt(fp, tableUsageDB2);
 			start = clock();	// restart the clock
@@ -67,5 +68,5 @@ int main(int argc, char **argv) {
 
 	fprintf(fp, "Exiting\n");
 	lws_context_destroy(context);		// destroy the context object
-	fclose(fp);
+	fclose(fp);			// close the logfile
 }

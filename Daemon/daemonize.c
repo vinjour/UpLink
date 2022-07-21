@@ -1,5 +1,7 @@
 #include "main.h"
 
+
+// create the daemon and return the logfile
 FILE *daemonize() {
 
 	FILE *fp= NULL;
