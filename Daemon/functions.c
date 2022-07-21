@@ -295,13 +295,9 @@ void isAlreadyClient(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], int numRowsND
 				sprintf(buffer, "%d", newQuota);
 				strcpy(tableNDS[i][NDSQOTA], buffer);
 				memmove(&tableNDS[j][NDSMAC][0], &tableNDS[j][NDSMAC][2], strlen(tableNDS[j][NDSMAC]));
-				fprintf(fp, "NewQuota1 : %d\n", newQuota);
-				fprintf(fp, "NewQuota2 : %s\n", tableNDS[i][NDSQOTA]);
-				fprintf(fp, "newIP : %s\n", tableNDS[j][NDSMAC]);
 			}
 			fprintf(fp,"matches : %d\n", match);
 		}
-		match = 0;
 	}
 }
 
