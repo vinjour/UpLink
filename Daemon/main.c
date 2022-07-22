@@ -5,6 +5,7 @@ int main(int argc, char **argv) {
 
 	char tableUsageDB[MAXROWS][10][MAXSTR], tableUsageDB2[MAXROWS][10][MAXSTR], tableNDS[MAXROWS][18][MAXSTR];
 	int numRowsUsageDB = 0, numRowsUsageDB2 = 0, numRowsNDS = 0, numClientsUsageDB = 0, numClientsUsageDB2 = 0;
+	char *macRouter;
 	int count = 1;
 
 	clock_t end, start = clock();
@@ -41,9 +42,10 @@ int main(int argc, char **argv) {
 		copyUsageDBtoUsagetxt();
 		numRowsUsageDB = getDatasFromUsageTxt(fp, tableUsageDB);
 		numRowsNDS = getDatasFromNDSlog(fp, tableNDS);
+		//quotaExceeded(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
+		//timeOut(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
 		isAlreadyClient(fp, tableNDS, numRowsNDS);
 		numClientsUsageDB = countNumClients(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
-		//timeOut(fp, tableUsageDB, numRowsUsageDB, timeLimit);
 
 		end = clock();
 		total = (double)(end-start) / CLOCKS_PER_SEC * 100;		// total in seconds
@@ -51,7 +53,8 @@ int main(int argc, char **argv) {
 		// just once after (2*TIMEONCE) seconds
 		if( (total >= TIMEONCE) && (count > 0) ) {
 			copyUsageDBtoUsage2txt();
-			routerConnectToServer(fp, wsi);	
+			macRouter = getMacAddressRouter(fp);
+			routerConnectToServer(fp, wsi, macRouter);	
 			count--;
 		}
 

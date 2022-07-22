@@ -24,7 +24,7 @@
 #define TIMELOOPWS 100	// execution time for the events in websocket client  (in milliseconds)
 #define TIMEONCE 3			// time to execute single actions   (in seconds)
 #define TIMEEVERY 5			// time to execute repetitive actions  (in seconds)
-#define TIMELIMIT 3600		// time limit before an inactive user is removed (in seconds)
+#define TIMELIMIT 14440		// time limit before an inactive user is removed (in seconds)
 
 #define DBMAC 0			// mac address of usage.db
 #define DBIP 1			// ip address of usage.db
@@ -51,18 +51,22 @@ void copyUsageDBtoUsage2txt();
 int getDatasFromUsageTxt(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR]);
 int getDatasFromUsage2Txt(FILE *, char tableUsageDB2[MAXROWS][10][MAXSTR]);
 int getDatasFromNDSlog(FILE *, char tableNDS[MAXROWS][18][MAXSTR]);
-void timeOut(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], int);
+void timeOut(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
 int countNumClients(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
-void routerConnectToServer(FILE *, struct lws*);
+char * getMacAddressRouter(FILE *fp);
+void routerConnectToServer(FILE *, struct lws*, char *macAddRouter);
 void isAlreadyClient(FILE *, char tableNDS[MAXROWS][18][MAXSTR], int);
 int sendDatasToServer(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR],
 							 char tableNDS[MAXROWS][18][MAXSTR], int, int, int, int, int, struct lws*);
+void quotaExceeded(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
+
 
 // functions from client.c
 struct lws_context *createContext(FILE *);
 struct lws_client_connect_info createInfoForWSI(struct lws_context *context);
 int writeToServer(struct lws*, char*, int);
 int webSocketCallback(struct lws*, enum lws_callback_reasons, void*, void*, size_t);
+
 
 // functions from daemonize.c
 FILE *daemonize();
