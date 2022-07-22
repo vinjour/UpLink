@@ -9,8 +9,8 @@ flush ruleset
 table inet filter {
 
 	set allow_host {
-		typeof ip daddr
-		elements = { 192.168.2.213, 192.168.3.113 }
+		type ether_addr
+		elements = { 00:d8:61:e1:f1:ca, d0:1b:49:a4:14:04 }
 	}
 
 	quota guest {
@@ -30,10 +30,10 @@ table inet filter {
 	chain FORWARD {
 		type filter hook forward priority 0; policy accept;
 		
-		ip daddr @allow_host goto ALLOW_FORWARD
-		ip saddr @allow_host goto ALLOW_FORWARD
-		ip daddr 192.168.0.0/16 goto RESTRICTED_FORWARD
-		ip saddr 192.168.0.0/16 goto RESTRICTED_FORWARD
+		ether daddr @allow_host goto ALLOW_FORWARD
+		ether saddr @allow_host goto ALLOW_FORWARD
+		ip daddr 192.168.3.0/24 goto RESTRICTED_FORWARD
+		ip saddr 192.168.3.0/24 goto RESTRICTED_FORWARD
 	}
 
 	chain ALLOW_FORWARD {
