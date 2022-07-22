@@ -172,45 +172,58 @@ int getDatasFromNDSlog(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR]) {
         	fprintf(fp, "Error opening \"%s\": %s.\n", file2, strerror(errno));
         	return 0;
 	}
-	else {
-		p = fgets(line, MAXBUF, logfile);
-		while (p != NULL) {
-			pt = strchr(line, '\n');		// we are looking for the character \n
-			if (pt != NULL) {
-				*pt = '\0';			// we replace by \0
-	 		}
-	
-			strcpy(tab[i], line);		// copy the row in the table 
-			p = fgets(line, MAXBUF, logfile);		// read the next line
-			i++;		// we go to the next index for the table
+
+	p = fgets(line, MAXBUF, logfile);
+	while (p != NULL) {
+		pt = strchr(line, '\n');		// we are looking for the character \n
+		if (pt != NULL) {
+			*pt = '\0';			// we replace by \0
 		}
 	
-		fclose(logfile);
+		strcpy(tab[i], line);		// copy the row in the table 
+		p = fgets(line, MAXBUF, logfile);		// read the next line
+		i++;		// we go to the next index for the table
+	}
 	
-		for (h=1; h<i; h++) {		// read the rows stored in tab
-			len = strlen(tab[h]);
-			for (l=0; l<len; l++) {
-				if (tab[h][l] == ' ') {
-					for (m=l; m<len; m++) {
-						tab[h][m] = tab[h][m+1];
-					}
-					len--;
-					l--;
+	fclose(logfile);
+	
+	for (h=1; h<i; h++) {		// read the rows stored in tab
+		len = strlen(tab[h]);
+		for (l=0; l<len; l++) {
+			if (tab[h][l] == ' ') {
+				for (m=l; m<len; m++) {
+					tab[h][m] = tab[h][m+1];
 				}
+				len--;
+				l--;
 			}
+		}
 	
-			if (len > 250) {
-				char *element = strtok(tab[h], ",");		// separate each element in a row delimited by a comma
+		if (len > 250) {
+			char *element = strtok(tab[h], ",");		// separate each element in a row delimited by a comma
 			
-				while (element != NULL) {
-					for (j=0; j<18; j++) {
-						strcpy(tableNDS[h][j], element);		// put each element in a row in different columns
-						element = strtok(NULL, ",");
-					}
+			while (element != NULL) {
+				for (j=0; j<18; j++) {
+					strcpy(tableNDS[h][j], element);		// put each element in a row in different columns
+					element = strtok(NULL, ",");
 				}
 			}
 		}
-		return i;	// return number of rows
+	}
+	return i;	// return number of rows
+}
+
+
+// clear the elements in TableNDS to use them later
+void getClearElementsFromTableNDS(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], int numRowsNDS) {
+
+	int i;
+
+	for (i=1; i<numRowsNDS; i++) {
+		memmove(&tableNDS[i][NDSMAC][0], &tableNDS[i][NDSMAC][4], strlen(tableNDS[i][NDSMAC]));			// get only mac adress without "mac="
+		memmove(&tableNDS[i][NDSQOTA][0], &tableNDS[i][NDSQOTA][6], strlen(tableNDS[i][NDSQOTA]));		// get only quota without "quota="
+		memmove(&tableNDS[i][NDSIP][0], &tableNDS[i][NDSIP][3], strlen(tableNDS[i][NDSIP]));					// get only ip adress without "ip="
+		memmove(&tableNDS[i][NDSNAME][0], &tableNDS[i][NDSNAME][5], strlen(tableNDS[i][NDSNAME]));		// get only username without "user="
 	}
 }
 
@@ -249,14 +262,7 @@ void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAX
 // return number of clients (registered to usage.txt and ndslog.log)
 int countNumClients(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS) {
 
-	int i = 0, j = 0, h = 0, k = 0;
-	
-	for (h=1; h<numRowsNDS; h++) {
-		memmove(&tableNDS[h][NDSMAC][0], &tableNDS[h][NDSMAC][4], strlen(tableNDS[h][NDSMAC]));			// get only mac adress without "mac="
-		memmove(&tableNDS[h][NDSQOTA][0], &tableNDS[h][NDSQOTA][6], strlen(tableNDS[h][NDSQOTA]));		// get only quota without "quota="
-		memmove(&tableNDS[h][NDSIP][0], &tableNDS[h][NDSIP][3], strlen(tableNDS[h][NDSIP]));					// get only ip adress without "ip="
-		memmove(&tableNDS[h][NDSNAME][0], &tableNDS[h][NDSNAME][5], strlen(tableNDS[h][NDSNAME]));		// get only username without "user="
-	}
+	int i = 0, j = 0, k = 0;
 
 	for (i=1; i<numRowsUsageDB; i++) {		// for every line in usage.txt
 		for (j=numRowsNDS; j>0; j--) {		// for every line in ndslog.log
@@ -352,7 +358,6 @@ void isAlreadyClient(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], int numRowsND
 					tableNDS[j][h][0] = '\0';
 				}
 			}
-			fprintf(fp,"matches : %d\n", match);
 		}
 		match = 0;
 	}

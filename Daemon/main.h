@@ -51,9 +51,10 @@ void copyUsageDBtoUsage2txt();
 int getDatasFromUsageTxt(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR]);
 int getDatasFromUsage2Txt(FILE *, char tableUsageDB2[MAXROWS][10][MAXSTR]);
 int getDatasFromNDSlog(FILE *, char tableNDS[MAXROWS][18][MAXSTR]);
+void getClearElementsFromTableNDS(FILE *, char tableNDS[MAXROWS][18][MAXSTR], int);
 void timeOut(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
 int countNumClients(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
-char * getMacAddressRouter(FILE *fp);
+char *getMacAddressRouter(FILE *);
 void routerConnectToServer(FILE *, struct lws*, char *macAddRouter);
 void isAlreadyClient(FILE *, char tableNDS[MAXROWS][18][MAXSTR], int);
 int sendDatasToServer(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR],

@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
 		copyUsageDBtoUsagetxt();
 		numRowsUsageDB = getDatasFromUsageTxt(fp, tableUsageDB);
 		numRowsNDS = getDatasFromNDSlog(fp, tableNDS);
+		getClearElementsFromTableNDS(fp, tableNDS, numRowsNDS);
 		//quotaExceeded(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
 		//timeOut(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
 		isAlreadyClient(fp, tableNDS, numRowsNDS);
