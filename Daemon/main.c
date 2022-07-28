@@ -43,8 +43,8 @@ int main(int argc, char **argv) {
 		numRowsUsageDB = getDatasFromUsageTxt(fp, tableUsageDB);
 		numRowsNDS = getDatasFromNDSlog(fp, tableNDS);
 		getClearElementsFromTableNDS(fp, tableNDS, numRowsNDS);
-		//quotaExceeded(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
-		//timeOut(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
+		//sendQuotaExceeded(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
+		//sendTimeOut(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
 		isAlreadyClient(fp, tableNDS, numRowsNDS);
 		numClientsUsageDB = countNumClients(fp, tableUsageDB, tableNDS, numRowsUsageDB, numRowsNDS);
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 		if( (total >= TIMEONCE) && (count > 0) ) {
 			copyUsageDBtoUsage2txt();
 			macRouter = getMacAddressRouter(fp);
-			routerConnectToServer(fp, wsi, macRouter);	
+			sendRouterConnectToServer(fp, wsi, macRouter);	
 			count--;
 		}
 

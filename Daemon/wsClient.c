@@ -27,8 +27,8 @@ int writeToServer(struct lws *wsi_in, char *str, int str_size_in) {
 }
 
 
-//
-int parseMsgFromServer(FILE *fp) {
+// analyses the message received from the server and acts on the requested action
+int parseMsgAndValidateActions(FILE *fp) {
 
 	json_t *msg, *action, *mac;
 	char command[MAXBUF];
@@ -90,7 +90,7 @@ int webSocketCallback(struct lws *wsi, enum lws_callback_reasons reason, void *u
 		case LWS_CALLBACK_CLIENT_RECEIVE:		// callback after receiving the server data
 			strcpy(msgRcv, (char*)in);
 			fprintf(fp,"%s\n", msgRcv);
-			parseMsgFromServer(fp);
+			parseMsgAndValidateActions(fp);
 			lws_callback_on_writable(wsi);
 			break;
 

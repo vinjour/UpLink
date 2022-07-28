@@ -229,7 +229,7 @@ void getClearElementsFromTableNDS(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], 
 
 
 // check if client is not connected since timeLimit and deletes it
-void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS, struct lws *wsi_in) {
+void sendTimeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS, struct lws *wsi_in) {
 
 	struct tm mytm;
 	time_t t, now=time(NULL);
@@ -323,7 +323,7 @@ char *getMacAddressRouter(FILE *fp) {
 
 
 // check if router is connected to server and sends validation to server
-void routerConnectToServer(FILE *fp, struct lws *wsi_in, char *macRouter) {
+void sendRouterConnectToServer(FILE *fp, struct lws *wsi_in, char *macRouter) {
 
 	char *sRouter = NULL;
 	json_t *router = json_object();
@@ -436,7 +436,7 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 
 
 // check if client has exceeded his quota and put him in guest zone
-void quotaExceeded(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS, struct lws *wsi_in) {
+void sendQuotaExceeded(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS, struct lws *wsi_in) {
 
 	int i = 0, j = 0, h = 0;
 	unsigned long int quota = 0;
