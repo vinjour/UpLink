@@ -21,42 +21,86 @@ int writeToServer(struct lws *wsi_in, char *str, int str_size_in) {
 	unsigned char *p = &out[LWS_SEND_BUFFER_PRE_PADDING];
 	n = lws_write(wsi_in, p, len, LWS_WRITE_TEXT);		// write out
 
-	printf("[websocket_write_back] %s\n", str);
 	free(out);		// free the buffer
 
 	return n;
 }
 
+
+//
+int parseMsgFromServer(FILE *fp) {
+
+	json_t *msg, *action, *mac;
+	char command[MAXBUF];
+	
+	msg =  json_loads(msgRcv, 0, NULL);
+	action = json_object_get(msg, "action");
+	mac = json_object_get(msg, "mac");
+	
+	if (strcmp(json_string_value(action), "router") == 0) {
+		sprintf(command, "nft add element inet filter allow_host { %s }", json_string_value(mac));
+		system(command);		// create a new element in NFTables to allow the router
+		fprintf(fp, "add router : %s\n", json_string_value(mac));
+	}
+	
+	else if (strcmp(json_string_value(action), "accept") == 0) {
+		sprintf(command, "nft add element inet filter allow_host { %s }", json_string_value(mac));
+		system(command);		// create a new element in NFTables to allow the client
+		fprintf(fp, "add client : %s\n", json_string_value(mac));
+	}
+
+	else if (strcmp(json_string_value(action), "delete") == 0) {
+		sprintf(command, "nft delete element inet filter allow_host { %s }", json_string_value(mac));
+		system(command);		// delete the element in NFTables to put the client in guest zone
+		fprintf(fp, "delete client : %s\n", json_string_value(mac));
+	}
+	
+	else {
+		return 0;
+	}
+
+	msgRcv[0] = '\0';
+	json_decref(mac);
+	json_decref(action);
+	json_decref(msg);
+	
+	return 0;
+}
+
+
 // when an event occurs on a connection under a certain protocol, the webSocketCallback function executed
 int webSocketCallback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
+
+	FILE *fp= NULL;
+	umask(0);
+	fp = fopen ("WSFile.txt", "a+");
 
 	switch (reason) {		// reason : the event that caused the callback
 
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:	// callback after connecting to the server
-			printf("[Main Service] Connect with server success.\n");
 			lws_callback_on_writable(wsi);
 			break;
 
 		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:		// callback after an error during connection
-			printf("[Main Service] Connect with server error.\n");
 			break;
 
 		case LWS_CALLBACK_CLOSED:		// callback after closing the connection
-			printf("[Main Service] LWS_CALLBACK_CLOSED\n");
 			break;
 
 		case LWS_CALLBACK_CLIENT_RECEIVE:		// callback after receiving the server data
-			printf("[Main Service] Client received : %s\n", (char *)in);
+			strcpy(msgRcv, (char*)in);
+			fprintf(fp,"%s\n", msgRcv);
+			parseMsgFromServer(fp);
+			lws_callback_on_writable(wsi);
 			break;
 
 		case LWS_CALLBACK_CLIENT_WRITEABLE:		// callback when this client can send data
-			printf("[Main Service] On writeable is called\n");
 			break;
 
 		default:
 			break;
 	}
-
+	fclose(fp);
 	return 0;
 }
 

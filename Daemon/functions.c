@@ -229,11 +229,10 @@ void getClearElementsFromTableNDS(FILE *fp, char tableNDS[MAXROWS][18][MAXSTR], 
 
 
 // check if client is not connected since timeLimit and deletes it
-void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS) {
+void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS, struct lws *wsi_in) {
 
 	struct tm mytm;
 	time_t t, now=time(NULL);
-	char command[MAXBUF];
 	int i = 0, j = 0, h = 0;
 
 	for (i=1; i<numRowsUsageDB; i++) {		// for every line in usage.txt
@@ -246,8 +245,19 @@ void timeOut(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAX
 		
 				if (diff >= TIMELIMIT) {
 
-					sprintf(command, "nft delete element inet filter allow_host { %s }", tableNDS[j][NDSMAC]);
-					system(command);		// delete the user's MAC address in NFTables to put him in guest zone
+					char* sDelete = NULL;
+					json_t *delete = json_object();
+
+					json_object_set_new(delete, "action", json_string("delete"));
+					json_object_set_new(delete, "name", json_string(tableNDS[j][NDSNAME]));
+					json_object_set_new(delete, "mac", json_string(tableNDS[j][NDSMAC]));
+				
+					sDelete = json_dumps(delete, 0);
+					lws_callback_on_writable(wsi_in);
+					writeToServer(wsi_in, sDelete, -1);
+					
+					json_decref(delete);
+					free(sDelete);
 
 					for(h=0; h<19; h++) {
 						tableNDS[j][h][0] = '\0';
@@ -316,11 +326,7 @@ char *getMacAddressRouter(FILE *fp) {
 void routerConnectToServer(FILE *fp, struct lws *wsi_in, char *macRouter) {
 
 	char *sRouter = NULL;
-	char command[MAXBUF];
 	json_t *router = json_object();
-
-	sprintf(command, "nft add element inet filter allow_host { %s }", macRouter);
-	system(command);		// create a new element in NFTables to allow the router
 
 	json_object_set_new(router, "action", json_string("router"));
 	json_object_set_new(router, "name", json_string("UpLink router"));
@@ -379,14 +385,11 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 				k++;
 				if (diffClients > 0) {
 					char* sConnect = NULL;
-					char command[MAXBUF];
 					json_t *connect = json_object();
-
-					sprintf(command, "nft add element inet filter allow_host { %s }", tableNDS[j][NDSMAC]);
-					system(command);		// create a new element in NFTables to allow the client
 
 					json_object_set_new(connect, "action", json_string("connect"));
 					json_object_set_new(connect, "name", json_string(tableNDS[j][NDSNAME]));
+					json_object_set_new(connect, "mac", json_string(tableNDS[j][NDSMAC]));
 				
 					sConnect = json_dumps(connect, 0);
 					lws_callback_on_writable(wsi_in);
@@ -433,9 +436,8 @@ int sendDatasToServer(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tab
 
 
 // check if client has exceeded his quota and put him in guest zone
-void quotaExceeded(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS) {
+void quotaExceeded(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int numRowsUsageDB, int numRowsNDS, struct lws *wsi_in) {
 
-	char command[MAXBUF];
 	int i = 0, j = 0, h = 0;
 	unsigned long int quota = 0;
 
@@ -447,8 +449,19 @@ void quotaExceeded(FILE *fp, char tableUsageDB[MAXROWS][10][MAXSTR], char tableN
 
 				if ( (atoi(tableUsageDB[i][3]) >= quota) || (atoi(tableUsageDB[i][4]) >= quota) ) {
 					
-					sprintf(command, "nft delete element inet filter allow_host { %s }", tableNDS[j][NDSMAC]);
-					system(command);		// delete the user's MAC address in NFTables to put him in guest zone
+					char* sDelete = NULL;
+					json_t *delete = json_object();
+
+					json_object_set_new(delete, "action", json_string("delete"));
+					json_object_set_new(delete, "name", json_string(tableNDS[j][NDSNAME]));
+					json_object_set_new(delete, "mac", json_string(tableNDS[j][NDSMAC]));
+				
+					sDelete = json_dumps(delete, 0);
+					lws_callback_on_writable(wsi_in);
+					writeToServer(wsi_in, sDelete, -1);
+					
+					json_decref(delete);
+					free(sDelete);
 
 					for(h=0; h<19; h++) {
 						tableNDS[j][h][0] = '\0';

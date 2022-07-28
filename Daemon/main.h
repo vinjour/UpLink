@@ -44,6 +44,8 @@
 #define NDSMAC 12		// mac address of ndslog.log
 #define NDSIP 13			// ip address of ndslog.log
 
+char msgRcv[MAXSTR];	// global char to receive messages from server
+int actionsFromServer;	// actions from server. 1:add router ; 2:add client ; 3:delete client
 
 // functions from functions.c
 void copyUsageDBtoUsagetxt();
@@ -52,20 +54,21 @@ int getDatasFromUsageTxt(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR]);
 int getDatasFromUsage2Txt(FILE *, char tableUsageDB2[MAXROWS][10][MAXSTR]);
 int getDatasFromNDSlog(FILE *, char tableNDS[MAXROWS][18][MAXSTR]);
 void getClearElementsFromTableNDS(FILE *, char tableNDS[MAXROWS][18][MAXSTR], int);
-void timeOut(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
+void timeOut(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int, struct lws*);
 int countNumClients(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
 char *getMacAddressRouter(FILE *);
 void routerConnectToServer(FILE *, struct lws*, char *macAddRouter);
 void isAlreadyClient(FILE *, char tableNDS[MAXROWS][18][MAXSTR], int);
 int sendDatasToServer(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableUsageDB2[MAXROWS][10][MAXSTR],
 							 char tableNDS[MAXROWS][18][MAXSTR], int, int, int, int, int, struct lws*);
-void quotaExceeded(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int);
+void quotaExceeded(FILE *, char tableUsageDB[MAXROWS][10][MAXSTR], char tableNDS[MAXROWS][18][MAXSTR], int, int, struct lws*);
 
 
-// functions from client.c
+// functions from wsClient.c
 struct lws_context *createContext(FILE *);
 struct lws_client_connect_info createInfoForWSI(struct lws_context *context);
 int writeToServer(struct lws*, char*, int);
+int parseMsgFromServer(FILE *);
 int webSocketCallback(struct lws*, enum lws_callback_reasons, void*, void*, size_t);
 
 
