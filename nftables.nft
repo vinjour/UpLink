@@ -8,12 +8,12 @@ flush ruleset
 
 table inet filter {
 
-	set allow_host {
+	set allow_host {		# define users who have access to the network with their MAC addresses 
 		type ether_addr
 		elements = { 00:d8:61:e1:f1:ca, d0:1b:49:a4:14:04 }
 	}
 
-	quota guest {
+	quota guest {			# define quota for guest users
 		until 2 mbytes used 0 bytes
 	}
 
@@ -30,14 +30,14 @@ table inet filter {
 	chain FORWARD {
 		type filter hook forward priority 0; policy accept;
 		
-		ether daddr @allow_host goto ALLOW_FORWARD
+		ether daddr @allow_host goto ALLOW_FORWARD	# users with MAC address in the "allow_host" list goto "ALLOW_FORWARD" chain
 		ether saddr @allow_host goto ALLOW_FORWARD
-		ip daddr 192.168.3.0/24 goto RESTRICTED_FORWARD
+		ip daddr 192.168.3.0/24 goto RESTRICTED_FORWARD		# users not allowed in the network goto "RESTRICTED_FORWARD" chain
 		ip saddr 192.168.3.0/24 goto RESTRICTED_FORWARD
 	}
 
-	chain ALLOW_FORWARD {
-		limit rate over 100 mbytes/second drop
+	chain ALLOW_FORWARD {		# users allowed are not restricted
+		limit rate over 100 mbytes/second drop	
 		
 		ct state { established, related } counter accept comment "allow wan est, relat"
 		ct state invalid counter drop
@@ -48,7 +48,7 @@ table inet filter {
 		oifname $wan tcp flags syn tcp option maxseg size set 1500
 	}
 
-	chain RESTRICTED_FORWARD {
+	chain RESTRICTED_FORWARD {		# users not allowed are restricted
 		limit rate over 2 mbytes/second drop
 		
 		#ip daddr 192.168.3.193 quota name "guest" drop
