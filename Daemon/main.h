@@ -21,7 +21,7 @@
 #define MAXROWS 100		// max number of rows
 #define MAXSTR 512			// max size of a string
 
-#define TIMELOOPWS 100	// execution time for the events in websocket client  (in milliseconds)
+#define TIMELOOPWS 0	// execution time for the events in websocket client  (in milliseconds)
 #define TIMEONCE 3			// time to execute single actions   (in seconds)
 #define TIMEEVERY 5			// time to execute repetitive actions  (in seconds)
 #define TIMELIMIT 14440		// time limit before an inactive user is removed (in seconds)

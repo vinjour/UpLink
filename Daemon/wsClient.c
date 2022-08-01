@@ -37,34 +37,30 @@ int parseMsgAndValidateActions(FILE *fp) {
 	action = json_object_get(msg, "action");
 	mac = json_object_get(msg, "mac");
 	
-	if (strcmp(json_string_value(action), "router") == 0) {
+	if (strcmp(json_string_value(action), "router") == 0) {		// create a new element in NFTables to allow the router
 		sprintf(command, "nft add element inet filter allow_host { %s }", json_string_value(mac));
-		system(command);		// create a new element in NFTables to allow the router
+		system(command);
 		fprintf(fp, "add router : %s\n", json_string_value(mac));
 	}
 	
-	else if (strcmp(json_string_value(action), "accept") == 0) {
+	else if (strcmp(json_string_value(action), "accept") == 0) {		// create a new element in NFTables to allow the client
 		sprintf(command, "nft add element inet filter allow_host { %s }", json_string_value(mac));
-		system(command);		// create a new element in NFTables to allow the client
+		system(command);
 		fprintf(fp, "add client : %s\n", json_string_value(mac));
 	}
 
-	else if (strcmp(json_string_value(action), "delete") == 0) {
+	else if (strcmp(json_string_value(action), "delete") == 0) {		// delete the element in NFTables to put the client in guest zone
 		sprintf(command, "nft delete element inet filter allow_host { %s }", json_string_value(mac));
-		system(command);		// delete the element in NFTables to put the client in guest zone
+		system(command);
 		fprintf(fp, "delete client : %s\n", json_string_value(mac));
-	}
-	
-	else {
-		return 0;
 	}
 
 	msgRcv[0] = '\0';
 	json_decref(mac);
 	json_decref(action);
 	json_decref(msg);
-	
-	return 0;
+
+	return 0;
 }
 
 
@@ -78,23 +74,28 @@ int webSocketCallback(struct lws *wsi, enum lws_callback_reasons reason, void *u
 	switch (reason) {		// reason : the event that caused the callback
 
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:	// callback after connecting to the server
+			fprintf(fp, "ESTABLISHED\n");
 			lws_callback_on_writable(wsi);
 			break;
 
 		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:		// callback after an error during connection
+			fprintf(fp, "ERROR\n");
 			break;
 
 		case LWS_CALLBACK_CLOSED:		// callback after closing the connection
+			fprintf(fp, "CLOSED\n");
 			break;
 
 		case LWS_CALLBACK_CLIENT_RECEIVE:		// callback after receiving the server data
+			fprintf(fp, "START RECEIVE\n");
 			strcpy(msgRcv, (char*)in);
 			fprintf(fp,"%s\n", msgRcv);
 			parseMsgAndValidateActions(fp);
-			lws_callback_on_writable(wsi);
+			fprintf(fp, "DONE RECEIVED\n");
 			break;
 
 		case LWS_CALLBACK_CLIENT_WRITEABLE:		// callback when this client can send data
+			fprintf(fp, "READY WRITE\n");
 			break;
 
 		default:

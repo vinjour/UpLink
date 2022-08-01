@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
 		fflush(fp);
 		
 		while (!wsi) {
+			fprintf(fp, "RECONNECT\n");
 			wsi = lws_client_connect_via_info(&ccinfo);		// create a client connection
 		}
 
@@ -73,4 +74,6 @@ int main(int argc, char **argv) {
 	fprintf(fp, "Exiting\n");
 	lws_context_destroy(context);		// destroy the context object
 	fclose(fp);			// close the logfile
+
+	return 0;
 }
